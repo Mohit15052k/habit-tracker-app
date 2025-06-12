@@ -1,0 +1,17 @@
+{
+    "user_name": "Mohit",
+    "goals": [
+        "Workout",
+        "Business Creation",
+        "Reading",
+        "Meditation"
+    ],
+    "daily_progress": {
+        "2025-06-12": {
+            "Business Creation": true,
+            "Meditation": false,
+            "Reading": true,
+            "Workout": false
+        }
+    }
+}
