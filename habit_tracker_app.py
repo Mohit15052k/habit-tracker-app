@@ -478,10 +478,10 @@ def weekly_summary_page():
 
 
 # --- Main App Logic (MODIFIED for Authentication) ---
-st.set_page_config(layout="centered", page_title=APP_TITLE)
+st.set_page_config(page_title="Your App Title", layout="centered")
 
 # Set background image for the login page as well
-set_page_background_image("Default") # Or a specific login background
+set_page_background_image("Default")
 
 # Authenticator Login Widget
 name, authentication_status, username = authenticator.login("Login", "main")
