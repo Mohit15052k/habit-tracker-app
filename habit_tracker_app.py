@@ -6,6 +6,9 @@ import json
 import os
 import base64
 import calendar
+import streamlit_authenticator as stauth # NEW: Import authenticator
+from yaml.loader import SafeLoader # NEW: For authenticator config
+import yaml # NEW: For authenticator config
 
 # --- Configuration and File Paths ---
 APP_TITLE = "Habit Tracker"
@@ -25,10 +28,43 @@ BACKGROUND_IMAGES = {
 }
 
 # --- Ensure Data Directory Exists ---
+# NEW: Ensure necessary directories are created
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs("images", exist_ok=True)
 
-# --- Helper Functions for Data Persistence ---
+# --- Authentication Configuration (NEW) ---
+# IMPORTANT: In a real app, load these from a secure source, not hardcoded!
+# Passwords should be hashed using `stauth.Hasher(['your_password']).generate()`
+hashed_passwords = stauth.Hasher(['admin_pass', 'user1_pass', 'user2_pass']).generate()
+
+credentials = {
+    "usernames": {
+        "admin": {
+            "email": "admin@example.com",
+            "name": "Administrator",
+            "password": hashed_passwords[0]
+        },
+        "user1": {
+            "email": "user1@example.com",
+            "name": "Regular User 1",
+            "password": hashed_passwords[1]
+        },
+        "user2": {
+            "email": "user2@example.com",
+            "name": "Regular User 2",
+            "password": hashed_passwords[2]
+        }
+    }
+}
+
+authenticator = stauth.Authenticate(
+    credentials,
+    "habit_tracker_cookie", # Name of your cookie
+    "super_secret_key_change_me_in_production", # Secret key for the cookie. CHANGE THIS!
+    cookie_expiry_days=30
+)
+
+# --- Helper Functions for Data Persistence (MODIFIED for multi-user) ---
 def load_quotes():
     """Loads quotes from the quotes.txt file."""
     try:
@@ -42,48 +78,73 @@ def load_quotes():
         st.error(f"An error occurred while loading quotes: {e}. Please check the file encoding.")
         return ["Error loading quotes."]
 
-def load_user_data():
-    """Loads user data from user_data.json."""
+# NEW: Loads all user data from the JSON file
+def load_all_user_data():
+    """Loads all user data from user_data.json."""
     if os.path.exists(USER_DATA_FILE):
         try:
             with open(USER_DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return {
-                    'user_name': data.get('user_name'),
-                    'goals': data.get('goals', []),
-                    'daily_progress': data.get('daily_progress', {})
-                }
+            return data
         except json.JSONDecodeError:
-            st.warning("User data file is corrupted. Starting with empty data.")
-            return {'user_name': None, 'goals': [], 'daily_progress': {}}
+            st.warning("User data file is corrupted. Starting with empty data structure.")
+            return {}
         except Exception as e:
-            st.warning(f"Error loading user data: {e}. Starting with empty data.")
-            return {'user_name': None, 'goals': [], 'daily_progress': {}}
-    return {'user_name': None, 'goals': [], 'daily_progress': {}}
+            st.warning(f"Error loading all user data: {e}. Starting with empty data structure.")
+            return {}
+    return {}
 
-def save_user_data(user_data):
-    """Saves user data to user_data.json."""
+# NEW: Saves all user data to the JSON file
+def save_all_user_data(all_data):
+    """Saves all user data to user_data.json."""
     try:
         with open(USER_DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(user_data, f, indent=4)
+            json.dump(all_data, f, indent=4)
     except Exception as e:
-        st.error(f"Error saving user data: {e}")
+        st.error(f"Error saving all user data: {e}")
+
+# NEW: Gets data for the currently logged-in user
+def get_current_user_data():
+    """Retrieves current user's data (goals, daily_progress) from loaded all_user_data."""
+    all_data = load_all_user_data()
+    current_username = st.session_state.get('authenticated_username')
+    if current_username and current_username in all_data:
+        return all_data[current_username].get('goals', []), all_data[current_username].get('daily_progress', {})
+    return [], {} # Return empty lists if user not found or not logged in
+
+# NEW: Updates and saves data for the currently logged-in user
+def update_current_user_data(goals, daily_progress):
+    """Updates and saves the current user's goals and daily progress."""
+    all_data = load_all_user_data()
+    current_username = st.session_state.get('authenticated_username')
+
+    if current_username:
+        if current_username not in all_data:
+            all_data[current_username] = {} # Initialize if first time for this user
+        all_data[current_username]['goals'] = goals
+        all_data[current_username]['daily_progress'] = daily_progress
+        save_all_user_data(all_data)
+    else:
+        st.error("Cannot save data: No user is currently authenticated.")
 
 # --- Global Data Loading ---
 QUOTES = load_quotes()
 
-# --- Session State Initialization ---
+# --- Session State Initialization (MODIFIED for multi-user) ---
 def init_session_state():
     if 'current_page' not in st.session_state:
         st.session_state.current_page = "Welcome"
 
-    if 'user_name' not in st.session_state:
-        user_data = load_user_data()
-        st.session_state.user_name = user_data['user_name']
-        st.session_state.goals = user_data['goals']
-        st.session_state.daily_progress = user_data['daily_progress']
+    # Only load user-specific data AFTER authentication
+    if 'authenticated_username' in st.session_state and st.session_state.authenticated_username:
+        # Load goals and daily progress for the current user
+        st.session_state.goals, st.session_state.daily_progress = get_current_user_data()
+    else:
+        # If not authenticated, ensure these are empty or not set
+        st.session_state.goals = []
+        st.session_state.daily_progress = {}
 
-init_session_state()
+# We will call init_session_state inside the authenticated block now.
 
 # --- Helper Functions ---
 def set_page(page_name):
@@ -116,7 +177,8 @@ def get_progress_color(percentage):
         return "red"
 
 def get_motivational_message(average_completion):
-    user_name_display = st.session_state.user_name or 'Habit Tracker User'
+    # Use st.session_state.user_name which is set by authenticator
+    user_name_display = st.session_state.get('user_name', 'Habit Tracker User')
     if average_completion >= 80:
         return (
             f"🚀 **Fantastic work, {user_name_display}!** Your dedication is truly shining through. "
@@ -127,12 +189,12 @@ def get_motivational_message(average_completion):
             f"✨ **Great effort, {user_name_display}!** You're consistently showing up, and that's the key. "
             "Remember, every step forward, no matter how small, leads to big changes. You're on the right path!"
         )
-    elif st.session_state.goals:
+    elif st.session_state.goals: # Only show this if goals are set
         return (
             f"💪 **Keep pushing, {user_name_display}!** Even if things felt challenging, remember that consistency beats perfection. "
             "Identify one small change you can make today to get back on track. You've got the power to make it happen!"
         )
-    else:
+    else: # If no goals are set yet for this user
         return (
             f"👋 **Welcome, {user_name_display}!** Ready to unlock your full potential? "
             "Start by setting your first goal on the 'Goal Setting' page. "
@@ -195,36 +257,26 @@ def set_page_background_image(page_name):
 
 # --- Page Functions ---
 def welcome_page():
-    st.title(f"Welcome, {st.session_state.user_name or 'to your Habit Tracker'}!")
+    # 'st.session_state.user_name' is set by authenticator after login
+    st.title(f"Welcome, {st.session_state.get('user_name', 'Habit Tracker User')}!")
     st.markdown("---")
 
-    if st.session_state.user_name is None:
-        name = st.text_input("What should I call you?")
-        if st.button("Start Tracking"):
-            if name:
-                st.session_state.user_name = name
-                save_user_data({
-                    'user_name': st.session_state.user_name,
-                    'goals': st.session_state.goals,
-                    'daily_progress': st.session_state.daily_progress
-                })
-                st.rerun()
-            else:
-                st.warning("Please enter your name to proceed.")
-    else:
-        today = datetime.date.today()
-        recent_percentages = []
+    today = datetime.date.today()
+    recent_percentages = []
+    # Only calculate if goals exist for the current user
+    if st.session_state.goals:
         for i in range(7):
             date_to_check = today - datetime.timedelta(days=i)
             date_str = date_to_check.strftime("%Y-%m-%d")
+            # Only consider dates for which there is progress for the current user's goals
             if date_str in st.session_state.daily_progress and any(g in st.session_state.goals for g in st.session_state.daily_progress[date_str]):
                 recent_percentages.append(calculate_daily_completion(date_str))
 
-        avg_recent_completion = sum(recent_percentages) / len(recent_percentages) if recent_percentages else 0
+    avg_recent_completion = sum(recent_percentages) / len(recent_percentages) if recent_percentages else 0
 
-        st.markdown(get_motivational_message(avg_recent_completion))
-        st.markdown("---")
-        st.markdown("Use the sidebar to navigate through the app.")
+    st.markdown(get_motivational_message(avg_recent_completion))
+    st.markdown("---")
+    st.markdown("Use the sidebar to navigate through the app.")
 
 
 def goal_setting_page():
@@ -235,14 +287,12 @@ def goal_setting_page():
     if st.button("Add Goal"):
         if new_goal and new_goal not in st.session_state.goals:
             st.session_state.goals.append(new_goal)
+            # When a new goal is added, ensure it's added to past daily_progress entries as False
             for date_key in st.session_state.daily_progress:
                 if new_goal not in st.session_state.daily_progress[date_key]:
                     st.session_state.daily_progress[date_key][new_goal] = False
-            save_user_data({
-                'user_name': st.session_state.user_name,
-                'goals': st.session_state.goals,
-                'daily_progress': st.session_state.daily_progress
-            })
+            # MODIFIED: Use update_current_user_data
+            update_current_user_data(st.session_state.goals, st.session_state.daily_progress)
             st.success(f"Goal '{new_goal}' added!")
             st.rerun()
         elif new_goal in st.session_state.goals:
@@ -252,7 +302,7 @@ def goal_setting_page():
 
     st.subheader("Your Current Goals:")
     if st.session_state.goals:
-        goals_copy = st.session_state.goals[:]
+        goals_copy = st.session_state.goals[:] # Use a copy to iterate while modifying
         for i, goal in enumerate(goals_copy):
             col1, col2 = st.columns([0.8, 0.2])
             with col1:
@@ -260,14 +310,12 @@ def goal_setting_page():
             with col2:
                 if st.button(f"Remove", key=f"remove_goal_{i}"):
                     st.session_state.goals.remove(goal)
+                    # When a goal is removed, also remove it from daily progress entries
                     for date_key in st.session_state.daily_progress:
                         if goal in st.session_state.daily_progress[date_key]:
                             del st.session_state.daily_progress[date_key][goal]
-                    save_user_data({
-                        'user_name': st.session_state.user_name,
-                        'goals': st.session_state.goals,
-                        'daily_progress': st.session_state.daily_progress
-                    })
+                    # MODIFIED: Use update_current_user_data
+                    update_current_user_data(st.session_state.goals, st.session_state.daily_progress)
                     st.success(f"Goal '{goal}' removed.")
                     st.rerun()
     else:
@@ -284,21 +332,25 @@ def goal_tracking_page():
             set_page("Goal Setting")
         return
 
+    # Ensure today's entry exists for the current user
     if today_str not in st.session_state.daily_progress:
         st.session_state.daily_progress[today_str] = {}
 
+    # Initialize or remove goals from today's progress based on current active goals
     for goal in st.session_state.goals:
         if goal not in st.session_state.daily_progress[today_str]:
             st.session_state.daily_progress[today_str][goal] = False
-
+    
+    # Remove goals from today's progress if they are no longer active goals
     goals_to_remove = [g for g in st.session_state.daily_progress[today_str] if g not in st.session_state.goals]
     for g in goals_to_remove:
         del st.session_state.daily_progress[today_str][g]
 
+
     st.subheader("Today's Goals:")
     updated_progress_for_today = {}
 
-    sorted_goals = sorted(st.session_state.goals)
+    sorted_goals = sorted(st.session_state.goals) # Display goals alphabetically
 
     for goal in sorted_goals:
         is_completed = st.checkbox(
@@ -310,11 +362,8 @@ def goal_tracking_page():
 
     if st.button("Save Today's Progress"):
         st.session_state.daily_progress[today_str] = updated_progress_for_today
-        save_user_data({
-            'user_name': st.session_state.user_name,
-            'goals': st.session_state.goals,
-            'daily_progress': st.session_state.daily_progress
-        })
+        # MODIFIED: Use update_current_user_data
+        update_current_user_data(st.session_state.goals, st.session_state.daily_progress)
         st.success("Today's progress saved!")
         st.rerun()
 
@@ -368,8 +417,8 @@ def progress_reports_page():
 
     if not st.session_state.daily_progress and not st.session_state.goals:
         st.info("No tracking data or goals set yet. Start by setting goals and tracking them!")
-    elif not st.session_state.daily_progress:
-         st.info("No tracking data available yet for your goals. Start tracking your goals!")
+    elif not st.session_state.daily_progress: # Only check if daily_progress is empty after checking for goals
+        st.info("No tracking data available yet for your goals. Start tracking your goals!")
 
 
 def weekly_summary_page():
@@ -382,11 +431,12 @@ def weekly_summary_page():
     st.subheader(f"Summary for the week of {start_of_week.strftime('%b %d, %Y')} - {end_of_week.strftime('%b %d, %Y')}")
 
     weekly_percentages = []
+    # Only consider dates that have entries for the current user's goals
     for i in range(7):
         date = start_of_week + datetime.timedelta(days=i)
         date_str = date.strftime("%Y-%m-%d")
         if date_str in st.session_state.daily_progress and st.session_state.daily_progress[date_str]:
-             weekly_percentages.append(calculate_daily_completion(date_str))
+            weekly_percentages.append(calculate_daily_completion(date_str))
 
     if not weekly_percentages:
         st.info("No tracking data for this week yet. Keep tracking your goals to see a summary!")
@@ -396,7 +446,9 @@ def weekly_summary_page():
     min_completion = min(weekly_percentages)
     max_completion = max(weekly_percentages)
 
+    # Use the motivational message function but adapt it for summary context
     summary_paragraph = get_motivational_message(avg_weekly_completion)
+    # Remove emojis and adapt intro phrases for summary
     summary_paragraph = summary_paragraph.replace("🚀", "").replace("✨", "").replace("💪", "").replace("👋", "")
     summary_paragraph = summary_paragraph.replace("Fantastic work", "This week's performance was fantastic")
     summary_paragraph = summary_paragraph.replace("Great effort", "You've put in great effort this week")
@@ -422,39 +474,58 @@ def weekly_summary_page():
     st.table(pd.DataFrame(daily_breakdown_data))
 
 
-# --- Main App Logic ---
+# --- Main App Logic (MODIFIED for Authentication) ---
 st.set_page_config(layout="centered", page_title=APP_TITLE)
 
-set_page_background_image(st.session_state.current_page)
+# Set background image for the login page as well
+set_page_background_image("Default") # Or a specific login background
 
-# Sidebar for navigation
-with st.sidebar:
-    st.title(APP_TITLE)
-    st.markdown("---")
-    st.subheader("Navigation")
-    if st.button("Home", key="nav_home"):
-        set_page("Welcome")
-    if st.button("Goal Tracking", key="nav_track"):
-        set_page("Goal Tracking")
-    if st.button("Goal Setting", key="nav_set"):
-        set_page("Goal Setting")
-    if st.button("Quote of the Day", key="nav_quotes"): # Changed button label
-        set_page("Quote of the Day") # Changed target page name
-    if st.button("Progress Reports", key="nav_reports"):
-        set_page("Progress Reports")
-    if st.button("Weekly Summary", key="nav_summary"):
-        set_page("Weekly Summary")
+# Authenticator Login Widget
+name, authentication_status, username = authenticator.login("Login", "main")
 
-# Render the selected page
-if st.session_state.current_page == "Welcome":
-    welcome_page()
-elif st.session_state.current_page == "Goal Tracking":
-    goal_tracking_page()
-elif st.session_state.current_page == "Goal Setting":
-    goal_setting_page()
-elif st.session_state.current_page == "Quote of the Day": # Changed page name in conditional check
-    quotes_page() # Function call remains the same
-elif st.session_state.current_page == "Progress Reports":
-    progress_reports_page()
-elif st.session_state.current_page == "Weekly Summary":
-    weekly_summary_page()
+if authentication_status: # User is successfully logged in
+    st.session_state.authenticated_username = username # Store username
+    st.session_state.user_name = name # Store display name
+    init_session_state() # Initialize session state *after* user is authenticated
+
+    # Set background image for the current app page
+    set_page_background_image(st.session_state.current_page)
+
+    # Sidebar for navigation and logout
+    with st.sidebar:
+        st.title(APP_TITLE)
+        st.markdown(f"**Welcome, {st.session_state.user_name}!**")
+        authenticator.logout("Logout", "main") # Logout button in sidebar
+        st.markdown("---")
+        st.subheader("Navigation")
+        if st.button("Home", key="nav_home"):
+            set_page("Welcome")
+        if st.button("Goal Tracking", key="nav_track"):
+            set_page("Goal Tracking")
+        if st.button("Goal Setting", key="nav_set"):
+            set_page("Goal Setting")
+        if st.button("Quote of the Day", key="nav_quotes"): # Changed button label
+            set_page("Quote of the Day") # Changed target page name
+        if st.button("Progress Reports", key="nav_reports"):
+            set_page("Progress Reports")
+        if st.button("Weekly Summary", key="nav_summary"):
+            set_page("Weekly Summary")
+
+    # Render the selected page
+    if st.session_state.current_page == "Welcome":
+        welcome_page()
+    elif st.session_state.current_page == "Goal Tracking":
+        goal_tracking_page()
+    elif st.session_state.current_page == "Goal Setting":
+        goal_setting_page()
+    elif st.session_state.current_page == "Quote of the Day": # Changed page name in conditional check
+        quotes_page() # Function call remains the same
+    elif st.session_state.current_page == "Progress Reports":
+        progress_reports_page()
+    elif st.session_state.current_page == "Weekly Summary":
+        weekly_summary_page()
+
+elif authentication_status == False: # Login failed
+    st.error("Username/password is incorrect")
+elif authentication_status == None: # Not yet logged in (or logged out)
+    st.info("Please enter your username and password to log in.")
