@@ -1,17 +1,24 @@
 {
-    "user_name": "Mohit",
-    "goals": [
+  "users": [
+    {
+      "username": "mohit",
+      "email": "mohit@example.com",
+      "name": "Mohit",
+      "password": "$2b$12$U1hvqFGOFXh/ybpLb3g9muJzJvT6A5cGBsK5QaQAlRwL8KhPvW25a",  # Example hashed password
+      "goals": [
         "Workout",
         "Business Creation",
         "Reading",
         "Meditation"
-    ],
-    "daily_progress": {
+      ],
+      "daily_progress": {
         "2025-06-12": {
-            "Business Creation": true,
-            "Meditation": false,
-            "Reading": true,
-            "Workout": false
+          "Business Creation": true,
+          "Meditation": false,
+          "Reading": true,
+          "Workout": false
         }
+      }
     }
+  ]
 }
