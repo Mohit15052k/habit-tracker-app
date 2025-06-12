@@ -10,6 +10,7 @@ import streamlit_authenticator as stauth # NEW: Import authenticator
 from yaml.loader import SafeLoader # NEW: For authenticator config
 import yaml # NEW: For authenticator config
 
+st.set_page_config(page_title="Your App Title", layout="centered")
 # --- Configuration and File Paths ---
 APP_TITLE = "Habit Tracker"
 DATA_DIR = "data"
@@ -477,8 +478,6 @@ def weekly_summary_page():
     st.table(pd.DataFrame(daily_breakdown_data))
 
 
-# --- Main App Logic (MODIFIED for Authentication) ---
-st.set_page_config(page_title="Your App Title", layout="centered")
 
 # Set background image for the login page as well
 set_page_background_image("Default")
