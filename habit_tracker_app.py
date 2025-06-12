@@ -483,7 +483,7 @@ def weekly_summary_page():
 set_page_background_image("Default")
 
 # Authenticator Login Widget
-name, authentication_status, username = authenticator.login("Login", location="main")
+authentication_status, username = authenticator.login("Login", location="main")
 
 if authentication_status: # User is successfully logged in
     st.session_state.authenticated_username = username # Store username
