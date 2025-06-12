@@ -35,9 +35,8 @@ os.makedirs("images", exist_ok=True)
 # --- Authentication Configuration (NEW) ---
 # IMPORTANT: In a real app, load these from a secure source, not hardcoded!
 # Passwords should be hashed using `stauth.Hasher(['your_password']).generate()`
-hashed_passwords = stauth.Hasher(['admin_pass', 'user1_pass', 'user2_pass']).generate()
-
-credentials = {
+hasher = stauth.Hasher() # Create an instance of the Hasher
+hashed_passwords = hasher.generate(['admin_pass', 'user1_pass', 'user2_pass']) # Call generate on the instancecredentials = {
     "usernames": {
         "admin": {
             "email": "admin@example.com",
