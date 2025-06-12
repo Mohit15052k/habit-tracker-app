@@ -32,11 +32,14 @@ BACKGROUND_IMAGES = {
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs("images", exist_ok=True)
 
-# --- Authentication Configuration (NEW) ---
-# IMPORTANT: In a real app, load these from a secure source, not hardcoded!
-# Passwords should be hashed using `stauth.Hasher(['your_password']).generate()`
-hasher = stauth.Hasher() # Create an instance of the Hasher
-hashed_passwords = hasher.generate(['admin_pass', 'user1_pass', 'user2_pass']) # Call generate on the instance
+# --- Pre-hashed passwords (Use Hasher().generate([...]) separately and paste the results here) ---
+hashed_passwords = [
+    '$2b$12$SOMEHASHEDPASSWORD1...',  # hashed 'admin_pass'
+    '$2b$12$SOMEHASHEDPASSWORD2...',  # hashed 'user1_pass'
+    '$2b$12$SOMEHASHEDPASSWORD3...'   # hashed 'user2_pass'
+]
+
+# --- Credentials Dictionary ---
 credentials = {
     "usernames": {
         "admin": {
