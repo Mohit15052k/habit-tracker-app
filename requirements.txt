@@ -1,7 +1,5 @@
 streamlit
-
 pandas
-
 streamlit-authenticator
-
 pyarrow
+pyyaml
