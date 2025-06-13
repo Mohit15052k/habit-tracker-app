@@ -21,6 +21,7 @@ CREDENTIALS = {
     "admin": "12345",
     "muskan": "12345",
     "ananya": "12345",
+    "shreya": "12345",
     "dhruv": "123456" # Changed to lowercase for consistency
 }
 
