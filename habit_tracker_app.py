@@ -24,7 +24,7 @@ CREDENTIALS = {
 # Define paths for background images for each page
 # Ensure these image files exist in your 'images' folder
 BACKGROUND_IMAGES = {
-    "Login": os.path.join("images", "login.jpg"), # For the login page
+    "Login": os.path.join("images", "welcome_bg.jpg"), # For the login page
     "Home": os.path.join("images", "welcome_bg.jpg"), # Home page background
     "Goal Tracking": os.path.join("images", "goal_tracking_bg.jpg"),
     "Goal Setting": os.path.join("images", "goal_setting_bg.jpg"),
