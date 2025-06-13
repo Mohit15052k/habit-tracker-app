@@ -392,8 +392,7 @@ def progress_reports_page():
 def weekly_summary_page():
     set_page_background_image("Weekly Summary")
     st.title("Weekly Summary")
-    load_image_for_page("summary.jpg")
-
+    
     today = datetime.date.today()
     start_of_week = today - datetime.timedelta(days=today.weekday()) # Monday as start of week
     end_of_week = start_of_week + datetime.timedelta(days=6)
