@@ -18,6 +18,7 @@ USER_DATA_FILE = os.path.join(DATA_DIR, "user_data.json")
 # Passwords are stored in plaintext. Use this ONLY for local testing or very limited, non-sensitive personal use.
 CREDENTIALS = {
     "admin": "12345",
+    "Dhruv": "12345",
     "mohitj": "123456" # Changed to lowercase for consistency
 }
 
