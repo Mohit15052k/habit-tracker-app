@@ -17,9 +17,9 @@ USER_DATA_FILE = os.path.join(DATA_DIR, "user_data.json")
 # IMPORTANT SECURITY WARNING: This method is INSECURE for any real-world application.
 # Passwords are stored in plaintext. Use this ONLY for local testing or very limited, non-sensitive personal use.
 CREDENTIALS = {
+    "Mohit": "12345",
     "admin": "12345",
-    "Dhruv": "12345",
-    "mohitj": "123456" # Changed to lowercase for consistency
+    "Dhruv": "123456" # Changed to lowercase for consistency
 }
 
 # Define paths for background images for each page
