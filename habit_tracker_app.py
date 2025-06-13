@@ -19,6 +19,8 @@ USER_DATA_FILE = os.path.join(DATA_DIR, "user_data.json")
 CREDENTIALS = {
     "mohit": "12345",
     "admin": "12345",
+    "muskan": "12345",
+    "ananya": "12345",
     "dhruv": "123456" # Changed to lowercase for consistency
 }
 
