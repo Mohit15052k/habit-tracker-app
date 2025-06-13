@@ -2,5 +2,6 @@ streamlit
 pandas
 streamlit-authenticator
 pyarrow
+extra-streamlit-components
 pyyaml
 bcrypt
