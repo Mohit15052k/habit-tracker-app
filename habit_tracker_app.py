@@ -387,44 +387,55 @@ def progress_reports_page():
     elif not st.session_state.daily_progress:
         st.info("No tracking data available yet for your goals. Start tracking your goals!")
 
+# ... (rest of your code above this function) ...
+
 def weekly_summary_page():
     set_page_background_image("Weekly Summary")
     st.title("Weekly Summary")
-    
+    load_image_for_page("summary.jpg")
+
     today = datetime.date.today()
     start_of_week = today - datetime.timedelta(days=today.weekday()) # Monday as start of week
     end_of_week = start_of_week + datetime.timedelta(days=6)
 
     st.subheader(f"Summary for the week of {start_of_week.strftime('%b %d, %Y')} - {end_of_week.strftime('%b %d, %Y')}")
 
-    weekly_percentages = []
+    weekly_percentages = [] # This will store percentages for all 7 days for min/max/table
+    meaningful_percentages_for_avg = [] # This will store percentages ONLY for days with tracked goals or >0% completion
     daily_breakdown_data = []
+
     for i in range(7):
         date = start_of_week + datetime.timedelta(days=i)
         date_str = date.strftime("%Y-%m-%d")
+        
         percentage = calculate_daily_completion(date_str)
-        weekly_percentages.append(percentage)
+        weekly_percentages.append(percentage) # Add to list for overall statistics and table
+
+        # Determine if this day's percentage is "meaningful" for the average
+        # A day is meaningful if:
+        # 1. It has a positive completion percentage (p > 0)
+        # 2. OR, if there's an entry for that date in daily_progress AND that entry is not empty
+        #    (meaning goals were tracked, even if all were 0% complete)
+        if percentage > 0 or (date_str in st.session_state.daily_progress and st.session_state.daily_progress[date_str]):
+            meaningful_percentages_for_avg.append(percentage)
+
+
         daily_breakdown_data.append({"Day": date.strftime("%A"), "Completion %": f"{percentage:.0f}%"})
 
     if not st.session_state.goals:
         st.info("No goals set yet. Set goals to see your weekly summary!")
         return
 
-    # Filter out 0% days if no goals were tracked on that day for average calculation
-    # Only if goals were defined for the week
-    meaningful_percentages = [p for p in weekly_percentages if p > 0 or (st.session_state.daily_progress.get(start_of_week.strftime("%Y-%m-%d") + datetime.timedelta(days=weekly_percentages.index(p)).strftime("%Y-%m-%d")))]
+    # Calculate statistics using meaningful_percentages_for_avg
+    avg_weekly_completion = sum(meaningful_percentages_for_avg) / len(meaningful_percentages_for_avg) if meaningful_percentages_for_avg else 0
+    min_completion = min(meaningful_percentages_for_avg) if meaningful_percentages_for_avg else 0
+    max_completion = max(meaningful_percentages_for_avg) if meaningful_percentages_for_avg else 0
 
-    if not meaningful_percentages and any(d in st.session_state.daily_progress for d in [start_of_week + datetime.timedelta(days=i) for i in range(7)]):
-         st.info("No goals were tracked this week. Start tracking your goals to see a summary!")
-         return
-    elif not st.session_state.goals and not st.session_state.daily_progress:
-        st.info("No goals set or tracked yet. Set goals and start tracking!")
+    # Provide feedback if no meaningful data was found for the week
+    if not meaningful_percentages_for_avg:
+        st.info("No goals were tracked this week. Start tracking your goals to see a summary!")
         return
     
-    avg_weekly_completion = sum(weekly_percentages) / len(weekly_percentages) if weekly_percentages else 0
-    min_completion = min(weekly_percentages) if weekly_percentages else 0
-    max_completion = max(weekly_percentages) if weekly_percentages else 0
-
     st.write(get_motivational_message(avg_weekly_completion))
 
     st.markdown("---")
@@ -436,6 +447,7 @@ def weekly_summary_page():
     st.subheader("Daily Breakdown:")
     st.table(pd.DataFrame(daily_breakdown_data))
 
+# ... (rest of your code below this function) ...
 
 # --- Main Streamlit App Flow ---
 st.set_page_config(layout="centered", page_title=APP_TITLE)
