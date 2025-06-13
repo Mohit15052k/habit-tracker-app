@@ -248,16 +248,49 @@ def home_page():
     st.markdown("---")
     st.markdown("Use the sidebar to navigate through the app.")
 
+# ... (rest of your code above this function) ...
+
 def goal_setting_page():
     set_page_background_image("Goal Setting")
     st.title("Goal Setting")
     
-    st.write("Enter your goals one by one. These are habits you want to track.")
+    st.write("Here you can manage your habits. Choose from suggestions or add your own!")
 
-    new_goal = st.text_input("New Goal:", key="new_goal_input")
-    if st.button("Add Goal"):
+    st.subheader("Add from Suggestions:")
+    # Filter out suggested habits that are already in the user's active goals
+    available_suggestions = [habit for habit in SUGGESTED_HABITS if habit not in st.session_state.goals]
+    
+    if available_suggestions:
+        selected_suggestions = st.multiselect(
+            "Select habits to add:",
+            options=available_suggestions,
+            key="suggested_habits_multiselect" # Unique key for this widget
+        )
+        if st.button("Add Selected Suggestions"):
+            if selected_suggestions:
+                for habit in selected_suggestions:
+                    if habit not in st.session_state.goals: # Double check, though multiselect should handle
+                        st.session_state.goals.append(habit)
+                        # Initialize new suggested habit for existing daily progress entries
+                        # This ensures past days automatically show this new goal as incomplete (False)
+                        for date_key in st.session_state.daily_progress:
+                            if habit not in st.session_state.daily_progress[date_key]:
+                                st.session_state.daily_progress[date_key][habit] = False
+                update_current_user_data(st.session_state.goals, st.session_state.daily_progress)
+                st.success(f"Added {len(selected_suggestions)} suggested habit(s)!")
+                st.rerun() # Rerun to update the UI and remove added suggestions from the list
+            else:
+                st.info("Please select at least one habit from the suggestions.")
+    else:
+        st.info("All suggested habits are already in your active goals!")
+
+
+    st.subheader("Add Your Own Custom Goal:")
+    new_goal = st.text_input("New Goal:", key="new_goal_input") # Keep your existing text input
+    if st.button("Add Custom Goal"): # Changed button label for clarity
         if new_goal and new_goal not in st.session_state.goals:
             st.session_state.goals.append(new_goal)
+            # Initialize new custom goal for existing daily progress entries
             for date_key in st.session_state.daily_progress:
                 if new_goal not in st.session_state.daily_progress[date_key]:
                     st.session_state.daily_progress[date_key][new_goal] = False
@@ -271,7 +304,7 @@ def goal_setting_page():
 
     st.subheader("Your Current Goals:")
     if st.session_state.goals:
-        goals_copy = st.session_state.goals[:] # Work on a copy for iteration during modification
+        goals_copy = st.session_state.goals[:] # Use a copy to iterate while potentially modifying
         for i, goal in enumerate(goals_copy):
             col1, col2 = st.columns([0.8, 0.2])
             with col1:
@@ -279,6 +312,7 @@ def goal_setting_page():
             with col2:
                 if st.button(f"Remove", key=f"remove_goal_{i}"):
                     st.session_state.goals.remove(goal)
+                    # When a goal is removed, also remove it from daily progress entries
                     for date_key in st.session_state.daily_progress:
                         if goal in st.session_state.daily_progress[date_key]:
                             del st.session_state.daily_progress[date_key][goal]
@@ -288,6 +322,7 @@ def goal_setting_page():
     else:
         st.info("No goals set yet. Start by adding some!")
 
+# ... (rest of your code below this function) ...
 def goal_tracking_page():
     set_page_background_image("Goal Tracking")
     st.title("Goal Tracking for Today")
