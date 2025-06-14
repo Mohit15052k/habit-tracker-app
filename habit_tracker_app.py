@@ -40,6 +40,20 @@ BACKGROUND_IMAGES = {
     "Default": os.path.join("images", "default_bg.jpg") # Fallback image
 }
 
+# Add suggested habits here
+SUGGESTED_HABITS = [
+    "Drink 8 glasses of water",
+    "Exercise for 30 minutes",
+    "Read for 15 minutes",
+    "Meditate for 10 minutes",
+    "Journal for 5 minutes",
+    "Take a 15-minute walk",
+    "Learn a new skill",
+    "Practice gratitude",
+    "Go to bed before 11 PM",
+    "Wake up before 7 AM"
+]
+
 # --- Ensure Data Directories Exist ---
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs("images", exist_ok=True)
@@ -248,8 +262,6 @@ def home_page():
     st.markdown("---")
     st.markdown("Use the sidebar to navigate through the app.")
 
-# ... (rest of your code above this function) ...
-
 def goal_setting_page():
     set_page_background_image("Goal Setting")
     st.title("Goal Setting")
@@ -310,19 +322,28 @@ def goal_setting_page():
             with col1:
                 st.write(f"- {goal}")
             with col2:
-                if st.button(f"Remove", key=f"remove_goal_{i}"):
-                    st.session_state.goals.remove(goal)
-                    # When a goal is removed, also remove it from daily progress entries
-                    for date_key in st.session_state.daily_progress:
-                        if goal in st.session_state.daily_progress[date_key]:
-                            del st.session_state.daily_progress[date_key][goal]
-                    update_current_user_data(st.session_state.goals, st.session_state.daily_progress)
-                    st.success(f"Goal '{goal}' removed.")
-                    st.rerun()
+                # Check if the goal has any associated progress data
+                goal_in_use = False
+                for date_data in st.session_state.daily_progress.values():
+                    if goal in date_data:
+                        goal_in_use = True
+                        break
+
+                if goal_in_use:
+                    st.button(f"Cannot Remove", key=f"remove_goal_{i}", disabled=True, help="This goal has recorded progress and cannot be removed.")
+                else:
+                    if st.button(f"Remove", key=f"remove_goal_{i}"):
+                        st.session_state.goals.remove(goal)
+                        # When a goal is removed, also remove it from daily progress entries
+                        for date_key in st.session_state.daily_progress:
+                            if goal in st.session_state.daily_progress[date_key]:
+                                del st.session_state.daily_progress[date_key][goal]
+                        update_current_user_data(st.session_state.goals, st.session_state.daily_progress)
+                        st.success(f"Goal '{goal}' removed.")
+                        st.rerun()
     else:
         st.info("No goals set yet. Start by adding some!")
 
-# ... (rest of your code below this function) ...
 def goal_tracking_page():
     set_page_background_image("Goal Tracking")
     st.title("Goal Tracking for Today")
@@ -422,8 +443,6 @@ def progress_reports_page():
     elif not st.session_state.daily_progress:
         st.info("No tracking data available yet for your goals. Start tracking your goals!")
 
-# ... (rest of your code above this function) ...
-
 def weekly_summary_page():
     set_page_background_image("Weekly Summary")
     st.title("Weekly Summary")
@@ -480,8 +499,6 @@ def weekly_summary_page():
 
     st.subheader("Daily Breakdown:")
     st.table(pd.DataFrame(daily_breakdown_data))
-
-# ... (rest of your code below this function) ...
 
 # --- Main Streamlit App Flow ---
 st.set_page_config(layout="centered", page_title=APP_TITLE)
