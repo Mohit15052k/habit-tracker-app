@@ -40,7 +40,8 @@ BACKGROUND_IMAGES = {
     "Default": os.path.join("images", "default_bg.jpg") # Fallback image
 }
 
-# Add suggested habits here
+# --- IMPORTANT: THIS IS WHERE THE SUGGESTED HABITS ARE DEFINED ---
+# This list needs to be present and accessible globally.
 SUGGESTED_HABITS = [
     "Drink 8 glasses of water",
     "Exercise for 30 minutes",
