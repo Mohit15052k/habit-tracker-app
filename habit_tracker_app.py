@@ -16,11 +16,8 @@ USER_DATA_FILE = os.path.join(DATA_DIR, "user_data.json")
 # --- Hardcoded User Credentials (Simple Login) ---
 CREDENTIALS = {
     "mohit": "12345",
-    "admin": "123456",
     "muskan": "12345",
-    "ananya": "12345",
-    "shreya": "12345",
-    "rayan": "12345",
+    "minal": "12345",
     "simran": "12345",
     "dhruv": "12345"
 }
