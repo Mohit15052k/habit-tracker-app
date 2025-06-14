@@ -14,8 +14,6 @@ QUOTES_FILE = os.path.join(DATA_DIR, "quotes.txt")
 USER_DATA_FILE = os.path.join(DATA_DIR, "user_data.json")
 
 # --- Hardcoded User Credentials (Simple Login) ---
-# IMPORTANT SECURITY WARNING: This method is INSECURE for any real-world application.
-# Passwords are stored in plaintext. Use this ONLY for local testing or very limited, non-sensitive personal use.
 CREDENTIALS = {
     "mohit": "12345",
     "admin": "123456",
@@ -24,24 +22,22 @@ CREDENTIALS = {
     "shreya": "12345",
     "rayan": "12345",
     "simran": "12345",
-    "dhruv": "12345" # Changed to lowercase for consistency
+    "dhruv": "12345"
 }
 
 # Define paths for background images for each page
-# Ensure these image files exist in your 'images' folder
 BACKGROUND_IMAGES = {
-    "Login": os.path.join("images", "welcome_bg.jpg"), # For the login page
-    "Home": os.path.join("images", "welcome_bg.jpg"), # Home page background
+    "Login": os.path.join("images", "welcome_bg.jpg"),
+    "Home": os.path.join("images", "welcome_bg.jpg"),
     "Goal Tracking": os.path.join("images", "goal_tracking_bg.jpg"),
     "Goal Setting": os.path.join("images", "goal_setting_bg.jpg"),
     "Quote of the Day": os.path.join("images", "quotes_bg.jpg"),
     "Progress Reports": os.path.join("images", "progress_reports_bg.jpg"),
     "Weekly Summary": os.path.join("images", "weekly_summary_bg.jpg"),
-    "Default": os.path.join("images", "default_bg.jpg") # Fallback image
+    "Default": os.path.join("images", "default_bg.jpg")
 }
 
 # --- IMPORTANT: THIS IS WHERE THE SUGGESTED HABITS ARE DEFINED ---
-# This list needs to be present and accessible globally.
 SUGGESTED_HABITS = [
     "Drink 8 glasses of water",
     "Exercise for 30 minutes",
@@ -61,7 +57,6 @@ os.makedirs("images", exist_ok=True)
 
 # --- Helper Functions for Data Persistence ---
 def load_quotes():
-    """Loads quotes from the quotes.txt file."""
     try:
         with open(QUOTES_FILE, "r", encoding="utf-8") as f:
             quotes = [line.strip() for line in f if line.strip()]
@@ -74,7 +69,6 @@ def load_quotes():
         return ["Error loading quotes."]
 
 def load_all_user_data():
-    """Loads all user data from user_data.json."""
     if os.path.exists(USER_DATA_FILE):
         try:
             with open(USER_DATA_FILE, "r", encoding="utf-8") as f:
@@ -89,7 +83,6 @@ def load_all_user_data():
     return {}
 
 def save_all_user_data(all_data):
-    """Saves all user data to user_data.json."""
     try:
         with open(USER_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(all_data, f, indent=4)
@@ -97,49 +90,42 @@ def save_all_user_data(all_data):
         st.error(f"Error saving all user data: {e}")
 
 def get_current_user_data():
-    """Retrieves current user's data (goals, daily_progress) from loaded all_user_data."""
     all_data = load_all_user_data()
-    current_username = st.session_state.get('username') # Using 'username' from simple login
+    current_username = st.session_state.get('username')
     if current_username and current_username in all_data:
         return all_data[current_username].get('goals', []), all_data[current_username].get('daily_progress', {})
-    return [], {} # Return empty lists if user not found or not logged in
+    return [], {}
 
 def update_current_user_data(goals, daily_progress):
-    """Updates and saves the current user's goals and daily progress."""
     all_data = load_all_user_data()
-    current_username = st.session_state.get('username') # Using 'username' from simple login
+    current_username = st.session_state.get('username')
 
     if current_username:
         if current_username not in all_data:
-            all_data[current_username] = {} # Initialize if first time for this user
+            all_data[current_username] = {}
         all_data[current_username]['goals'] = goals
         all_data[current_username]['daily_progress'] = daily_progress
         save_all_user_data(all_data)
     else:
         st.error("Cannot save data: No user is currently logged in.")
 
-# --- Global Data Loading ---
 QUOTES = load_quotes()
 
-# --- Session State Initialization for User Data ---
 def init_session_state_for_user():
-    # Only initialize if the user is logged in AND session state hasn't been set for this user yet
     if 'logged_in' in st.session_state and st.session_state.logged_in and 'goals' not in st.session_state:
         st.session_state.goals, st.session_state.daily_progress = get_current_user_data()
-        st.session_state.current_page = "Home" # Set initial page after login
+        st.session_state.current_page = "Home"
 
-# --- General Helper Functions ---
 def set_page_background_image(page_name):
     image_path = BACKGROUND_IMAGES.get(page_name, BACKGROUND_IMAGES["Default"])
-
     ext = os.path.splitext(image_path)[1].lower()
     mime_type_map = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp'}
-    mime_type = mime_type_map.get(ext, 'image/jpeg') # Default to jpeg if unknown
+    mime_type = mime_type_map.get(ext, 'image/jpeg')
 
     try:
         if not os.path.exists(image_path):
             st.warning(f"Background image not found for '{page_name}' at {image_path}. Using default background.")
-            image_path = BACKGROUND_IMAGES["Default"] # Fallback to default
+            image_path = BACKGROUND_IMAGES["Default"]
             ext = os.path.splitext(image_path)[1].lower()
             mime_type = mime_type_map.get(ext, 'image/jpeg')
 
@@ -173,7 +159,7 @@ def load_image_for_page(image_name):
 
 def get_daily_quote():
     today = datetime.date.today().strftime("%Y-%m-%d")
-    random.seed(today) # Seed for consistent quote per day
+    random.seed(today)
     return random.choice(QUOTES)
 
 def calculate_daily_completion(date_str):
@@ -181,7 +167,7 @@ def calculate_daily_completion(date_str):
         return 0.0
     tracked_goals_for_day = {
         goal: status for goal, status in st.session_state.daily_progress[date_str].items()
-        if goal in st.session_state.goals # Only count goals that are currently active
+        if goal in st.session_state.goals
     }
     completed_goals = sum(1 for status in tracked_goals_for_day.values() if status)
     total_goals_tracked_that_day = len(tracked_goals_for_day)
@@ -198,7 +184,7 @@ def get_progress_color(percentage):
         return "red"
 
 def get_motivational_message(average_completion):
-    user_name_display = st.session_state.get('username', 'Habit Tracker User') # Using 'username'
+    user_name_display = st.session_state.get('username', 'Habit Tracker User')
     if average_completion >= 80:
         return (
             f"🚀 **Fantastic work, {user_name_display}!** Your dedication is truly shining through. "
@@ -209,12 +195,12 @@ def get_motivational_message(average_completion):
             f"✨ **Great effort, {user_name_display}!** You're consistently showing up, and that's the key. "
             "Remember, every step forward, no matter how small, leads to big changes. You're on the right path!"
         )
-    elif st.session_state.goals: # If goals exist but completion is low
+    elif st.session_state.goals:
         return (
             f"💪 **Keep pushing, {user_name_display}!** Even if things felt challenging, remember that consistency beats perfection. "
             "Identify one small change you can make today to get back on track. You've got the power to make it happen!"
         )
-    else: # If no goals are set yet for this user
+    else:
         return (
             f"👋 **Welcome, {user_name_display}!** Ready to unlock your full potential? "
             "Start by setting your first goal on the 'Goal Setting' page. "
@@ -235,9 +221,8 @@ def login_page():
     if login_button:
         if username_input.lower() in CREDENTIALS and CREDENTIALS[username_input.lower()] == password_input:
             st.session_state["logged_in"] = True
-            st.session_state["username"] = username_input.lower() # Store username in lowercase
-            # Initialize user-specific session state after successful login
-            init_session_state_for_user() 
+            st.session_state["username"] = username_input.lower()
+            init_session_state_for_user()
             st.success("Logged in successfully!")
             st.rerun()
         else:
@@ -253,7 +238,6 @@ def home_page():
         for i in range(7):
             date_to_check = today - datetime.timedelta(days=i)
             date_str = date_to_check.strftime("%Y-%m-%d")
-            # Only consider dates where goals were actually tracked
             if date_str in st.session_state.daily_progress and any(goal in st.session_state.goals for goal in st.session_state.daily_progress[date_str]):
                  recent_percentages.append(calculate_daily_completion(date_str))
 
@@ -269,41 +253,38 @@ def goal_setting_page():
     
     st.write("Here you can manage your habits. Choose from suggestions or add your own!")
 
-    st.subheader("Add from Suggestions:")
-    # Filter out suggested habits that are already in the user's active goals
+    st.subheader("Add from Suggestions:") # Always show this header
+    
     available_suggestions = [habit for habit in SUGGESTED_HABITS if habit not in st.session_state.goals]
     
-    if available_suggestions:
+    if available_suggestions: # Only show the multiselect if there are suggestions
         selected_suggestions = st.multiselect(
             "Select habits to add:",
             options=available_suggestions,
-            key="suggested_habits_multiselect" # Unique key for this widget
+            key="suggested_habits_multiselect"
         )
         if st.button("Add Selected Suggestions"):
             if selected_suggestions:
                 for habit in selected_suggestions:
-                    if habit not in st.session_state.goals: # Double check, though multiselect should handle
+                    if habit not in st.session_state.goals:
                         st.session_state.goals.append(habit)
-                        # Initialize new suggested habit for existing daily progress entries
-                        # This ensures past days automatically show this new goal as incomplete (False)
                         for date_key in st.session_state.daily_progress:
                             if habit not in st.session_state.daily_progress[date_key]:
                                 st.session_state.daily_progress[date_key][habit] = False
                 update_current_user_data(st.session_state.goals, st.session_state.daily_progress)
                 st.success(f"Added {len(selected_suggestions)} suggested habit(s)!")
-                st.rerun() # Rerun to update the UI and remove added suggestions from the list
+                st.rerun()
             else:
                 st.info("Please select at least one habit from the suggestions.")
-    else:
+    else: # If no available suggestions, show a message
         st.info("All suggested habits are already in your active goals!")
 
 
     st.subheader("Add Your Own Custom Goal:")
-    new_goal = st.text_input("New Goal:", key="new_goal_input") # Keep your existing text input
-    if st.button("Add Custom Goal"): # Changed button label for clarity
+    new_goal = st.text_input("New Goal:", key="new_goal_input")
+    if st.button("Add Custom Goal"):
         if new_goal and new_goal not in st.session_state.goals:
             st.session_state.goals.append(new_goal)
-            # Initialize new custom goal for existing daily progress entries
             for date_key in st.session_state.daily_progress:
                 if new_goal not in st.session_state.daily_progress[date_key]:
                     st.session_state.daily_progress[date_key][new_goal] = False
@@ -317,13 +298,12 @@ def goal_setting_page():
 
     st.subheader("Your Current Goals:")
     if st.session_state.goals:
-        goals_copy = st.session_state.goals[:] # Use a copy to iterate while potentially modifying
+        goals_copy = st.session_state.goals[:]
         for i, goal in enumerate(goals_copy):
             col1, col2 = st.columns([0.8, 0.2])
             with col1:
                 st.write(f"- {goal}")
             with col2:
-                # Check if the goal has any associated progress data
                 goal_in_use = False
                 for date_data in st.session_state.daily_progress.values():
                     if goal in date_data:
@@ -335,7 +315,6 @@ def goal_setting_page():
                 else:
                     if st.button(f"Remove", key=f"remove_goal_{i}"):
                         st.session_state.goals.remove(goal)
-                        # When a goal is removed, also remove it from daily progress entries
                         for date_key in st.session_state.daily_progress:
                             if goal in st.session_state.daily_progress[date_key]:
                                 del st.session_state.daily_progress[date_key][goal]
@@ -354,11 +333,10 @@ def goal_tracking_page():
 
     if not st.session_state.goals:
         st.warning("You haven't set any goals yet! Please go to 'Goal Setting' to add your goals.")
-        st.session_state.current_page = "Goal Setting" # Automatically navigate
-        st.rerun() # Rerun to show Goal Setting page
+        st.session_state.current_page = "Goal Setting"
+        st.rerun()
         return
 
-    # Ensure today's entry exists and contains all current goals
     if today_str not in st.session_state.daily_progress:
         st.session_state.daily_progress[today_str] = {}
 
@@ -366,7 +344,6 @@ def goal_tracking_page():
         if goal not in st.session_state.daily_progress[today_str]:
             st.session_state.daily_progress[today_str][goal] = False
     
-    # Remove any goals from today's progress that are no longer in the main goals list
     goals_to_remove = [g for g in st.session_state.daily_progress[today_str] if g not in st.session_state.goals]
     for g in goals_to_remove:
         del st.session_state.daily_progress[today_str][g]
@@ -435,7 +412,7 @@ def progress_reports_page():
             "Date": display_date,
             "Completion (%)": f"<span style='color:{color};'>{percentage:.0f}%</span>"
         })
-    report_data.reverse() # Show oldest first
+    report_data.reverse()
     df_report = pd.DataFrame(report_data)
     st.markdown(df_report.to_html(escape=False, index=False), unsafe_allow_html=True)
 
@@ -449,13 +426,13 @@ def weekly_summary_page():
     st.title("Weekly Summary")
     
     today = datetime.date.today()
-    start_of_week = today - datetime.timedelta(days=today.weekday()) # Monday as start of week
+    start_of_week = today - datetime.timedelta(days=today.weekday())
     end_of_week = start_of_week + datetime.timedelta(days=6)
 
     st.subheader(f"Summary for the week of {start_of_week.strftime('%b %d, %Y')} - {end_of_week.strftime('%b %d, %Y')}")
 
-    weekly_percentages = [] # This will store percentages for all 7 days for min/max/table
-    meaningful_percentages_for_avg = [] # This will store percentages ONLY for days with tracked goals or >0% completion
+    weekly_percentages = []
+    meaningful_percentages_for_avg = []
     daily_breakdown_data = []
 
     for i in range(7):
@@ -463,13 +440,8 @@ def weekly_summary_page():
         date_str = date.strftime("%Y-%m-%d")
         
         percentage = calculate_daily_completion(date_str)
-        weekly_percentages.append(percentage) # Add to list for overall statistics and table
+        weekly_percentages.append(percentage)
 
-        # Determine if this day's percentage is "meaningful" for the average
-        # A day is meaningful if:
-        # 1. It has a positive completion percentage (p > 0)
-        # 2. OR, if there's an entry for that date in daily_progress AND that entry is not empty
-        #    (meaning goals were tracked, even if all were 0% complete)
         if percentage > 0 or (date_str in st.session_state.daily_progress and st.session_state.daily_progress[date_str]):
             meaningful_percentages_for_avg.append(percentage)
 
@@ -480,12 +452,10 @@ def weekly_summary_page():
         st.info("No goals set yet. Set goals to see your weekly summary!")
         return
 
-    # Calculate statistics using meaningful_percentages_for_avg
     avg_weekly_completion = sum(meaningful_percentages_for_avg) / len(meaningful_percentages_for_avg) if meaningful_percentages_for_avg else 0
     min_completion = min(meaningful_percentages_for_avg) if meaningful_percentages_for_avg else 0
     max_completion = max(meaningful_percentages_for_avg) if meaningful_percentages_for_avg else 0
 
-    # Provide feedback if no meaningful data was found for the week
     if not meaningful_percentages_for_avg:
         st.info("No goals were tracked this week. Start tracking your goals to see a summary!")
         return
@@ -504,29 +474,24 @@ def weekly_summary_page():
 # --- Main Streamlit App Flow ---
 st.set_page_config(layout="centered", page_title=APP_TITLE)
 
-# Check login status
 if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
-    login_page() # Display login page if not logged in
+    login_page()
 else:
-    init_session_state_for_user() # Ensure user-specific state is initialized after login
+    init_session_state_for_user()
 
-    # Navigation menu in sidebar
     with st.sidebar:
         st.title(APP_TITLE)
         st.markdown(f"**Hello, {st.session_state['username']} 👋**")
         st.markdown("---")
         
-        # Navigation using a selectbox
         menu = st.sidebar.selectbox("Navigate", ["Home", "Goal Setting", "Goal Tracking", "Quote of the Day", "Progress Reports", "Weekly Summary", "Logout"])
 
         if menu == "Logout":
-            st.session_state.clear() # Clear all session state on logout
-            st.rerun() # Rerun to go back to login page
+            st.session_state.clear()
+            st.rerun()
 
-    # Display the selected page
-    st.session_state.current_page = menu # Update current_page based on sidebar selection
+    st.session_state.current_page = menu
     
-    # Set background based on the selected page
     set_page_background_image(st.session_state.current_page)
 
     if st.session_state.current_page == "Home":
